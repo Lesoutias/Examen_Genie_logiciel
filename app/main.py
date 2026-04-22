@@ -79,12 +79,35 @@ def create_list_vendeurs_view():
         print("✅ Vue list_vendeurs créée ou remplacée.")
 
 
+def create_vue_taxes():
+    """Crée ou remplace la vue SQL vue_taxes au démarrage."""
+    with engine.connect() as conn:
+        conn.execute(text("DROP VIEW IF EXISTS vue_taxes;"))
+        conn.execute(text(
+            """
+            CREATE VIEW vue_taxes AS
+            SELECT
+                id,
+                nom,
+                COALESCE(montant_base, 0) AS montant_base,
+                COALESCE(frequence, 'Non définie') AS frequence,
+                COALESCE(description, 'Aucune description') AS description,
+                COALESCE(prix_libre, 0) AS prix_libre
+            FROM taxes
+            -- WHERE status = 'actif';
+            """
+        ))
+        conn.commit()
+        print("✅ Vue vue_taxes créée ou remplacée.")
+
+
 # Événement au démarrage de l'application
 @app.on_event("startup")
 async def startup_event():
     print("🚀 Démarrage de l'application...")
     create_default_admin()
     create_list_vendeurs_view()
+    create_vue_taxes()
     print("✅ Application prête !")
 # CORS middleware configuration
 app.add_middleware(
