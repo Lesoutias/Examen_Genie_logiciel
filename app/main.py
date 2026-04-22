@@ -1,14 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.database import engine, Base
-from app.routes import auth, users, vendeurs, taxes, paiements, signalements, stats
-
-from fastapi import FastAPI
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 import bcrypt
 from datetime import datetime
-from app.database import SessionLocal, engine
+
+from app.database import engine, Base, SessionLocal
+from app.routes import auth, users, vendeurs, taxes, paiements, signalements, stats
 from app.models.user import User
 
 # Create all tables in the database
@@ -59,11 +57,34 @@ def create_default_admin():
     finally:
         db.close()
 
+
+def create_list_vendeurs_view():
+    """Crée ou remplace la vue SQL list_vendeurs au démarrage."""
+    with engine.connect() as conn:
+        conn.execute(text("DROP VIEW IF EXISTS list_vendeurs;"))
+        conn.execute(text(
+            """
+            CREATE VIEW list_vendeurs AS
+            SELECT
+                v.id,
+                CONCAT(TRIM(v.nom), ' ', TRIM(v.prenom)) AS noms,
+                v.telephone,
+                v.identifiant_national AS id_nat,
+                v.emplacement AS marche
+            FROM vendeurs v
+            WHERE v.is_active = TRUE;
+            """
+        ))
+        conn.commit()
+        print("✅ Vue list_vendeurs créée ou remplacée.")
+
+
 # Événement au démarrage de l'application
 @app.on_event("startup")
 async def startup_event():
     print("🚀 Démarrage de l'application...")
     create_default_admin()
+    create_list_vendeurs_view()
     print("✅ Application prête !")
 # CORS middleware configuration
 app.add_middleware(
