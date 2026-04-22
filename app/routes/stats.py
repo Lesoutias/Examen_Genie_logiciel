@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, select
 from datetime import datetime, timedelta
 from typing import List
 
@@ -42,10 +42,10 @@ def get_dashboard_data(db: Session = Depends(get_db), current_user: User = Depen
     active_vendeurs = db.query(func.count(Vendeur.id)).scalar() or 0
     active_agents = db.query(func.count(User.id)).filter(User.role == "Agent de Collecte").scalar() or 0
 
-    # 4. Alerts counts
-    paid_recently_subquery = db.query(Paiement.vendeur_id).filter(
+    # 4. Alerts counts - CORRIGÉ
+    paid_recently_subquery = select(Paiement.vendeur_id).where(
         Paiement.date_paiement >= (now - timedelta(days=2))
-    ).subquery()
+    )
     unpaid_vendeurs_count = db.query(func.count(Vendeur.id)).filter(
         ~Vendeur.id.in_(paid_recently_subquery)
     ).scalar() or 0
@@ -114,15 +114,15 @@ def get_dashboard_data(db: Session = Depends(get_db), current_user: User = Depen
         for row in tax_dist_query
     ]
 
-    # 8. Unpaid By Tax
+    # 8. Unpaid By Tax - CORRIGÉ
     taxes = db.query(Taxe).all()
     unpaid_by_tax = []
     for t in taxes:
         if t.prix_libre: continue
-        paid_today_subquery = db.query(Paiement.vendeur_id).filter(
+        paid_today_subquery = select(Paiement.vendeur_id).where(
             Paiement.taxe_id == t.id,
             func.date(Paiement.date_paiement) == today
-        ).subquery()
+        )
         count = db.query(func.count(Vendeur.id)).filter(~Vendeur.id.in_(paid_today_subquery)).scalar() or 0
         if count > 0:
             unpaid_by_tax.append(UnpaidByTax(taxe_name=t.nom, count=count))
