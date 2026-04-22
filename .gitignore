@@ -1,12 +1,13 @@
 # Python
-*__pycache__/
-*__pycache__/
-*.py[cod]
+__pycache__/
+*.pyc
 
-# Virtual env
+# Virtual environment
 venv/
 .env
 
-# IDE
-.vscode/
-.idea/
+# Pytest
+.pytest_cache/
+
+# Autres
+*.log
