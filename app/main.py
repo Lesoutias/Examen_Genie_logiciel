@@ -101,6 +101,61 @@ def create_vue_taxes():
         print("✅ Vue vue_taxes créée ou remplacée.")
 
 
+def create_stored_procedures():
+    """Crée ou remplace les procédures stockées SQL au démarrage."""
+    with engine.connect() as conn:
+        print("Création ou remplacement des procédures stockées...")
+        conn.execute(text("DROP PROCEDURE IF EXISTS sp_UpdateUser"))
+        conn.execute(text(
+            """
+            CREATE PROCEDURE sp_UpdateUser(
+                IN p_user_id INT,
+                IN p_full_name VARCHAR(255),
+                IN p_phone_number VARCHAR(50),
+                IN p_role VARCHAR(50)
+            )
+            BEGIN
+                UPDATE users
+                SET full_name = p_full_name,
+                    phone_number = p_phone_number,
+                    role = p_role
+                WHERE id = p_user_id;
+            END
+            """
+        ))
+
+        conn.execute(text("DROP PROCEDURE IF EXISTS sp_update_taxe"))
+        conn.execute(text(
+            """
+            CREATE PROCEDURE sp_update_taxe(
+                IN p_id INT,
+                IN p_nom VARCHAR(255),
+                IN p_montant_base FLOAT,
+                IN p_frequence VARCHAR(255),
+                IN p_description TEXT,
+                IN p_prix_libre BOOLEAN
+            )
+            BEGIN
+                UPDATE taxes
+                SET
+                    nom = p_nom,
+                    montant_base = p_montant_base,
+                    frequence = p_frequence,
+                    description = p_description,
+                    prix_libre = p_prix_libre
+                WHERE id = p_id;
+            END
+            """
+        ))
+
+        conn.commit()
+        print("✅ Procédures stockées créées ou remplacées.")
+
+        result = conn.execute(text("SHOW PROCEDURE STATUS WHERE Db = DATABASE()"))
+        procedures = [row[1] for row in result.fetchall()]
+        print(f"🔎 Stored procedures in current schema: {procedures}")
+
+
 # Événement au démarrage de l'application
 @app.on_event("startup")
 async def startup_event():
@@ -108,6 +163,7 @@ async def startup_event():
     create_default_admin()
     create_list_vendeurs_view()
     create_vue_taxes()
+    create_stored_procedures()
     print("✅ Application prête !")
 # CORS middleware configuration
 app.add_middleware(

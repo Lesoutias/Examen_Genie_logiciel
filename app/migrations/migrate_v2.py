@@ -62,8 +62,36 @@ def migrate():
             END
             """
             conn.execute(text(create_procedure_sql))
+            print("Creating stored procedure sp_update_taxe...")
+            conn.execute(text("DROP PROCEDURE IF EXISTS sp_update_taxe"))
+
+            create_taxe_procedure_sql = """
+            CREATE PROCEDURE sp_update_taxe(
+                IN p_id INT,
+                IN p_nom VARCHAR(255),
+                IN p_montant_base FLOAT,
+                IN p_frequence VARCHAR(255),
+                IN p_description TEXT,
+                IN p_prix_libre BOOLEAN
+            )
+            BEGIN
+                UPDATE taxes
+                SET 
+                    nom = p_nom,
+                    montant_base = p_montant_base,
+                    frequence = p_frequence,
+                    description = p_description,
+                    prix_libre = p_prix_libre
+                WHERE id = p_id;
+            END
+            """
+            conn.execute(text(create_taxe_procedure_sql))
             conn.commit()
-            print("Successfully created stored procedure.")
+            print("Successfully created stored procedures.")
+
+            status = conn.execute(text("SHOW PROCEDURE STATUS WHERE Db = DATABASE()"))
+            procedures = [row[1] for row in status.fetchall()]
+            print(f"Stored procedures in current schema: {procedures}")
 
         except Exception as e:
             print(f"Error during migration: {e}")
